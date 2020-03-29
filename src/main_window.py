@@ -193,7 +193,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # handler for login_button clicked-signal
         def login_button_clicked(button):
-            from hangoutsgtk.login_window import LoginWindow
+            from .login_window import LoginWindow
             # create LoginDialog
             self.login_window = LoginWindow(
                 application=self.get_application(),

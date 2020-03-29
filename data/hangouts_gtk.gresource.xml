@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/dosch/HangoutsGTK">
+    <file preprocess="xml-stripblanks" alias="hangouts-gtk">icons/com.dosch.HangoutsGTK.svg</file>
+    <file preprocess="xml-stripblanks">icons/placeholder.svg</file>
+    <file>ui/style.css</file>
+    <file compressed="true" preprocess="xml-stripblanks">ui/main_window.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">ui/login_window.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">ui/conversation_sidebar_element.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">ui/conversation_sidebar.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">ui/message_box.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">ui/chat_info.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">ui/chat_info_timeless.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">ui/chat_message_foreign.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">ui/chat_message_own.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">ui/conversation_edit_panel.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">ui/conversation_edit_user_element.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">ui/popover_menu.ui</file>
+  </gresource>
+</gresources>

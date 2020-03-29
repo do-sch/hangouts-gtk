@@ -1,0 +1,7 @@
+data/com.dosch.HangoutsGTK.desktop.in
+data/com.dosch.HangoutsGTK.appdata.xml.in
+data/com.dosch.HangoutsGTK.gschema.xml
+src/window.ui
+src/main.py
+src/window.py
+

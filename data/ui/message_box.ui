@@ -69,7 +69,7 @@
                   <object class="GtkImage">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="stock">gtk-goto-bottom</property>
+                    <property name="icon_name">go-bottom-symbolic</property>
                   </object>
                 </child>
                 <style>
@@ -201,7 +201,7 @@
               <object class="GtkImage">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="icon_name">photo-symbolic</property>
+                <property name="icon_name">insert-image-symbolic</property>
                 <property name="icon_size">1</property>
                 <style>
                   <class name="image_button"/>

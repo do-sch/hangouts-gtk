@@ -23,7 +23,7 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('Handy', '0.0')
 gi.require_version('WebKit2', '4.0')
 
-from gi.repository import Gtk, Gio
+from gi.repository import Gtk, Gio, Gdk, GLib
 
 from .main_window import MainWindow
 
@@ -32,6 +32,16 @@ class Application(Gtk.Application):
     def __init__(self):
         super().__init__(application_id='com.dosch.HangoutsGTK',
                          flags=Gio.ApplicationFlags.FLAGS_NONE)
+
+        # set GLib stuff
+        GLib.set_application_name("Music")
+        GLib.set_prgname(self.get_application_id())
+
+        # set style
+        provider = Gtk.CssProvider()
+        provider.load_from_resource("/com/dosch/HangoutsGTK/ui/style.css")
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
 
     def do_activate(self):
         win = self.props.active_window

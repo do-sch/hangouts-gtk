@@ -1,0 +1,10 @@
+build/
+_build/
+builddir/
+dist/
+.vscode/
+.idea/
+py-compile/
+__pycache__/
+*.py[cod]
+*.ui[~#]

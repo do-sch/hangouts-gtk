@@ -80,7 +80,7 @@ def save_image(parent_window, image_cache, url):
         def save(pixbuf):
             print("saving...")
             pixbuf.savev(filename, type, [], [])
-        image_cache.get_image(url, save, (0, 0))
+        image_cache.get_image(url, save, None)
     dialog.destroy()
 
 
@@ -219,7 +219,8 @@ class ChatMessageForeign(Gtk.Box):
             image_cache.get_image(
                 user.photo_url,
                 round,
-                PROFILE_PHOTO_SMALL
+                size=PROFILE_PHOTO_SMALL,
+                cache=True
             )
 
         self.show()

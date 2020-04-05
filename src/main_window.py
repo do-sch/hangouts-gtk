@@ -76,6 +76,7 @@ class MainWindow(Gtk.ApplicationWindow):
             # create client from token stuff
             else:
                 def get_userlist_conversationlist(client, userlist, conversationlist):
+                    print("logged in")
                     self.set_client_userlist_conversationlist(client, userlist, conversationlist)
 
                 start_client(

@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import requests
-import threading
+import _thread
 from gi.repository import Gio, GLib
 from gi.repository.GdkPixbuf import Pixbuf, InterpType
 
@@ -26,153 +26,110 @@ SENT_IMAGE_PREVIEW = (200, 200)
 
 class ImageCache:
 
-    __scaled_image_dict: dict = NotImplemented  # contains cache of scaled images
-    __raw_image_dict: dict = NotImplemented     # contains cache of raw images
-    __request_threads_lock = threading.Lock()
-    __request_threads = set()
+    #__scaled_image_dict: dict = NotImplemented  # contains cache of scaled images
+    #__raw_image_dict: dict = NotImplemented     # contains cache of raw images
+    #__request_threads_lock = threading.Lock()
+    #__request_threads = set()
+
+    __sem = NotImplemented
+    __image_dict = NotImplemented
 
     # create ImageCache TODO: load cache from .cache directory
     def __init__(self):
         self.__raw_image_dict = dict()
         self.__scaled_image_dict = dict()
 
-    def get_image(self, url: str, callback, size=PROFILE_PHOTO):
+        self.__sem = _thread.allocate_lock()
+        self.__image_dict = dict()
+        self.__fetching_dict = dict()
 
-        if not url.startswith("https"):
+
+    def __get_image_thread(self, url: str, callback, cache, userdata=None):
+
+        # standardize all URLs
+        if not url.startswith("https:"):
             url = "https:" + url
 
-        key = (url, size)
-
-        image = self.__scaled_image_dict.get(key, None)
-
-        # if image is cached return instantly
-        if image:
-            callback(image)
+        # look into cache
+        cached = self.__image_dict.get(url, None)
+        if cached:
+            _thread.start_new_thread(
+                callback, (cached, userdata)
+            )
             return
 
-        work = dict()
-        work[key] = [callback]
+        # no one is allowed to look inside fetching_dict
+        self.__sem.acquire()
 
-        # Thread for requesting and resizing images
-        class RequestAndResizeThread(threading.Thread):
+        # look into cache again
+        cached = self.__image_dict.get(url, None)
+        if cached:
+            callback(cached, userdata)
+            return
 
-            __lock = threading.Lock()
-            __work = dict()
+        # see if someone else is working
+        do_the_work = len(self.__fetching_dict) == 0
 
-            def __init__(self, not_cached: dict, raw_image_dict, scaled_image_dict, threads_set: set, lock: threading.Lock):
-                super().__init__(name="RequestAndResize-Thread")
+        work = (callback, userdata, cache)
+        url_list = self.__fetching_dict.get(url, list())
+        url_list.append(work)
+        self.__fetching_dict[url] = url_list
 
-                self.__not_cached = not_cached
-                self.__raw_image_dict = raw_image_dict
-                self.__scaled_image_dict = scaled_image_dict
-                self.__threads_set = threads_set
-                self.__outer_lock = lock
+        self.__sem.release()
 
-            # add work to dict extend callbacks
-            def add_work(self, work):
-                self.__lock.acquire()
-                for key in work:
-                    old_callbacks = self.__work.get(key, [])
-                    new_callbacks = work.get(key, [])
+        # return if someone else needs to do the work
+        if not do_the_work:
+            return
 
-                    self.__work[key] = old_callbacks + new_callbacks
+        # iterate through all urls
+        while len(self.__fetching_dict):
+            # get first key
+            url = next(iter(self.__fetching_dict))
 
-                self.__lock.release()
+            # request image
+            response = requests.get(url)
+            input_stream = Gio.MemoryInputStream.new_from_data(response.content, None)
+            pixbuf = Pixbuf.new_from_stream(input_stream, None)
 
-            # get one key-value-pair from dict
-            def __get_key_callback(self):
-                self.__lock.acquire()
-                try:
-                    key = next(iter(self.__work.keys()))
-                    value = self.__work[key]
-                    del self.__work[key]
-                except StopIteration:
-                    key, value = None, None
-                self.__lock.release()
-                return key, value
+            self.__sem.acquire()
+            # pass image to every callback
+            for (callback, userdata, cache) in self.__fetching_dict.get(url):
+                if cache:
+                    self.__image_dict[url] = pixbuf
+                _thread.start_new_thread(
+                    callback,
+                    (pixbuf, userdata)
+                )
+            del self.__fetching_dict[url]
+            self.__sem.release()
 
-            def __scale_image(self, pixbuf, size):
-                width, height = size
-                if width <= 0 and height <= 0:
-                    return pixbuf
-                dim = pixbuf.props.width / pixbuf.props.height
-                if dim > 1:
-                    height = width / dim
-                else:
-                    width = height * dim
 
-                return pixbuf.scale_simple(width, height, InterpType.BILINEAR)
+    def get_image(self, url: str, callback, size=PROFILE_PHOTO, cache=False):
 
-            # do work
-            def run(self):
+        def got_image(image, userdata):
+            callback, size = userdata
+            resize(image, size, callback)
 
-                self.add_work(self.__not_cached)
-                key, callbacks = self.__get_key_callback()
-                while key:
-                    # is already cached
-                    scaled_image = self.__scaled_image_dict.get(key, None)
-                    if scaled_image:
-                        for callback in callbacks:
-                            GLib.idle_add(callback, scaled_image)
+        _thread.start_new_thread(
+            self.__get_image_thread,
+            (url, got_image, cache, (callback, size))
+        )
 
-                    # size not cached
-                    else:
-                        url, size = key
-                        raw_image = self.__raw_image_dict.get(url, None)
+def resize(pixbuf, size, callback):
 
-                        # raw image is cached
-                        if raw_image:
-                            scaled = self.__scale_image(raw_image, size)
-                            self.__scaled_image_dict[key] = scaled
-                            for callback in callbacks:
-                                GLib.idle_add(callback, scaled)
+    if size is None:
+        GLib.idle_add(callback, pixbuf)
+        return
 
-                        # raw image not cached
-                        else:
-                            response = requests.get(url)
-                            input_stream = Gio.MemoryInputStream.new_from_data(response.content, None)
-                            pixbuf = Pixbuf.new_from_stream(input_stream, None)
-                            self.__raw_image_dict[url] = pixbuf
-                            scaled = self.__scale_image(pixbuf, size)
-                            self.__scaled_image_dict[key] = scaled
-                            for callback in callbacks:
-                                GLib.idle_add(callback, scaled)
+    width, height = size
+    if width <= 0 and height <= 0:
+        return pixbuf
+    dim = pixbuf.props.width / pixbuf.props.height
+    if dim > 1:
+        height = width / dim
+    else:
+        width = height * dim
 
-                    # get next key
-                    key, callbacks = self.__get_key_callback()
+    scaled_image = pixbuf.scale_simple(width, height, InterpType.BILINEAR)
 
-                self.__outer_lock.acquire()
-                # start new thread, if new work was added before lock.acquire was called
-                if self.__work:
-                    req_thread = RequestAndResizeThread(self.__work, self.__raw_image_dict, self.__scaled_image_dict, self.__threads_set, self.__lock)
-                    self.__threads_set.add(req_thread)
-                    req_thread.start()
-
-                self.__threads_set.remove(self)
-                self.__outer_lock.release()
-
-        self.__request_threads_lock.acquire()
-
-        # if thread is running give your work to that thread
-        if len(self.__request_threads):
-            next(iter(self.__request_threads)).add_work(work)
-
-        # if no thread is running, start new thread for getting image
-        else:
-            req_thread = RequestAndResizeThread(
-                work,
-                self.__raw_image_dict,
-                self.__scaled_image_dict,
-                self.__request_threads,
-                self.__request_threads_lock
-            )
-            self.__request_threads.add(req_thread)
-            req_thread.start()
-        self.__request_threads_lock.release()
-
-    def _debug(self):
-        import sys
-        print("scaled_image_dict size", len(self.__scaled_image_dict))
-        print("mem: ", sys.getsizeof(self.__scaled_image_dict))
-        print("__raw_image_dict size", len(self.__raw_image_dict))
-        print("mem 2: ", sys.getsizeof(self.__raw_image_dict))
+    GLib.idle_add(callback, scaled_image)

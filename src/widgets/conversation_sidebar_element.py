@@ -165,7 +165,8 @@ class ConversationSidebarElement(Gtk.Box):
             image_cache.get_image(
                 user.photo_url,
                 lambda pix: add_buf(user.photo_url, pix),
-                (width[user_count - 1], width[user_count - 1])
+                (width[user_count - 1], width[user_count - 1]),
+                cache=True
             )
 
         # recognize new messages

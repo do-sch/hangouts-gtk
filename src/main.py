@@ -34,7 +34,7 @@ class Application(Gtk.Application):
                          flags=Gio.ApplicationFlags.FLAGS_NONE)
 
         # set GLib stuff
-        GLib.set_application_name("Music")
+        GLib.set_application_name("HangoutsGTK")
         GLib.set_prgname(self.get_application_id())
 
         # set style
@@ -47,6 +47,7 @@ class Application(Gtk.Application):
         win = self.props.active_window
         if not win:
             win = MainWindow(application=self)
+            win.set_default_icon_name(self.props.application_id)
         win.present()
 
 

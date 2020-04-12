@@ -41,7 +41,9 @@ def start_client(user_data, token_storage, oauth_code=None):
             self.loop = loop
 
         def connect_on_event(self, callback):
+            print("Conversation.connect_on_event")
             def _callback(conv_event):
+                print("Conversation.connect_on_event_callback")
                 idle_add(callback, conv_event)
             self.hangups_conversation.on_event.add_observer(_callback)
             return _callback
@@ -148,7 +150,9 @@ def start_client(user_data, token_storage, oauth_code=None):
             self.queue = queue
 
         def connect_on_event(self, callback):
+            print("ConversationList.connect_on_event")
             def _callback(conv_event):
+                print("ConversationList.connect_on_event.callback")
                 idle_add(callback, conv_event)
             self.hangups_conversation_list.on_connect.add_observer(_callback)
             return _callback
@@ -196,7 +200,9 @@ def start_client(user_data, token_storage, oauth_code=None):
             self.loop = loop
 
         def connect_on_event(self, callback):
+            print("Client.connect_on_event")
             def _callback(event):
+                print("Client.connect_on_event.callback")
                 idle_add(callback, event)
             self.hangups_client.on_connect.add_observer(_callback)
             return _callback
@@ -249,9 +255,11 @@ def start_client(user_data, token_storage, oauth_code=None):
 
     # function is called, when refresh_token is retrieved
     def session_with_refresh_token(refresh_token, user_data):
+        print("session_with_refresh_token")
 
         # function handles getting access_token and refresh_token, if only oauth_code is avaliable
         def session_with_refresh_token_async(refresh_token, user_data):
+            print("session_with_refresh_token_async")
 
             callback, auth_error, network_error, undefined_error = user_data
 
@@ -310,11 +318,13 @@ def start_client(user_data, token_storage, oauth_code=None):
                 hangups_client.on_disconnect.add_observer(on_disconnect_callback)
 
                 async def connect_task():
+                    print("connect_task")
                     task = asyncio.ensure_future(hangups_client.connect())
 
                     on_connect = asyncio.Future()
 
                     def on_connect_callback():
+                        print("on_connect_callback")
                         on_connect.set_result(None)
 
                     async def run_queue(queue):
@@ -322,15 +332,19 @@ def start_client(user_data, token_storage, oauth_code=None):
                             coro = await queue.get()
                             await coro
 
+                    print("pre_add_observer")
                     hangups_client.on_connect.add_observer(on_connect_callback)
                     done, pending = await asyncio.wait(
                         (on_connect, task), return_when=asyncio.FIRST_COMPLETED
                     )
+                    print("post_add_abserver")
 
                     user_list, conversation_list = await build_user_conversation_list(hangups_client)
+                    print("build_user_conversation_list")
 
                     idle_add(callback, Client(hangups_client, queue, loop), user_list, ConversationList(conversation_list, queue, loop))
 
+                    print("pre pending")
                     pending = list(pending)
                     pending.append(run_queue(queue))
 

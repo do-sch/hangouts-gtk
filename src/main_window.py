@@ -70,6 +70,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # handle existing refresh_token
         def get_token(token, user_data=None):
+            print("got tokein")
             # nobody was logged in previously
             if not token:
                 self.main_stack.set_visible_child_name("login_page")
@@ -120,12 +121,21 @@ class MainWindow(Gtk.ApplicationWindow):
         logout.connect("activate", lambda action, val: self.logout())
         self.add_action(logout)
 
-        debug = Gio.SimpleAction.new("debug")
-        def ___debug():
-            self.__image_cache._debug()
+        quit = Gio.SimpleAction.new("quit")
+        quit.set_enabled(True)
+        quit.connect("activate", lambda action, val: self.destroy())
+        self.add_action(quit)
 
-        debug.connect("activate", lambda action, val: ___debug())
-        self.add_action(debug)
+        # prevent Application from being destroyed by clicking close
+        def on_close(window, event):
+            if self.main_stack.get_visible_child() is self.content_box:
+                self.hide();
+                return True
+
+            return False
+
+        self.connect("delete-event", on_close)
+        print("init ready")
 
     def __assemble_header_bar_elements(self):
         # back button of right back button
@@ -263,6 +273,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.__active_id = None
         # disable logout
         self.lookup_action("logout").set_enabled(False)
+
 
     def __notification_clicked(self, action, variant: GLib.Variant):
         self.show()

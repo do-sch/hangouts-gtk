@@ -24,7 +24,7 @@ from gi.repository import Secret
 class TokenStorage():
 
     SECRET_SCHEMA = Secret.Schema.new(
-        name="com.do-sch.hangouts-gtk.refresh_token",
+        name="com.dosch.HangoutsGTK.refresh_token",
         flags=Secret.SchemaFlags.NONE,
         attribute_names_and_types={"refresh_token": Secret.SchemaAttributeType.STRING}
     )

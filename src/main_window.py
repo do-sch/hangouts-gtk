@@ -114,7 +114,7 @@ class MainWindow(Gtk.ApplicationWindow):
         # add actions
         show_conversation_action = Gio.SimpleAction.new("show-conversation", GLib.VariantType.new('s'))
         show_conversation_action.connect("activate", self.__notification_clicked)
-        self.add_action(show_conversation_action)
+        self.props.application.add_action(show_conversation_action)
 
         logout = Gio.SimpleAction.new("logout")
         logout.set_enabled(False)

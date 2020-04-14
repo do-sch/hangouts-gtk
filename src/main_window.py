@@ -70,7 +70,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # handle existing refresh_token
         def get_token(token, user_data=None):
-            print("got tokein")
+            print("got token")
             # nobody was logged in previously
             if not token:
                 self.main_stack.set_visible_child_name("login_page")

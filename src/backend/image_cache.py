@@ -64,6 +64,7 @@ class ImageCache:
         # look into cache again
         cached = self.__image_dict.get(url, None)
         if cached:
+            self.__sem.release()
             callback(cached, userdata)
             return
 

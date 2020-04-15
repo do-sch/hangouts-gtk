@@ -84,16 +84,14 @@ class ConversationSidebarElement(Gtk.Box):
         set_time(conversation.last_modified)
 
         user_count = len(conversation.users) - 1 if len(conversation.users) < 6 else 4
-        image_dict = dict()
+        images = list()
 
         # make round image
-        def add_buf(url, pix):
+        def add_buf(pix):
 
-            image_dict[url] = pix
+            images.append(pix)
 
-            if len(image_dict) == user_count:
-
-                images = list(image_dict.values())
+            if len(images) == user_count:
 
                 ms = self.photo_preview.props.pixel_size  # min(chain(map(lambda pix: pix.props.width, images), map(lambda pix: pix.props.height, images)))
 
@@ -114,7 +112,6 @@ class ConversationSidebarElement(Gtk.Box):
                     diag = math.sqrt(diagsq)
                     radius = diag / (2 + 2 * math.sqrt(2))
                     coord = ms - 2 * radius
-                    scale *= ms / (2 * radius)
                     arc = (
                         (0, 0, radius, radius, radius, scale),
                         (coord, coord, ms - radius, ms - radius, radius, scale)
@@ -124,15 +121,13 @@ class ConversationSidebarElement(Gtk.Box):
                     y_half = half - offset
                     threequaroff = quarter + y_half
                     quaroff = quarter + offset
-                    scale *= 2
                     arc = (
-                        (quarter, offset, half, quaroff, quarter, 2),
-                        (0, y_half, quarter, threequaroff, quarter, 2),
-                        (half, y_half, half + quarter, threequaroff, quarter, 2)
+                        (quarter, offset, half, quaroff, quarter, scale),
+                        (0, y_half, quarter, threequaroff, quarter, scale),
+                        (half, y_half, half + quarter, threequaroff, quarter, scale)
                     )
                 else:
                     threequar = half + quarter
-                    scale *= 2
                     arc = (
                         (0, 0, quarter, quarter, quarter, scale),
                         (half, 0, threequar, quarter, quarter, scale),
@@ -164,7 +159,7 @@ class ConversationSidebarElement(Gtk.Box):
         for user in list(filter(lambda u: not u.is_self, conversation.users))[:4]:
             image_cache.get_image(
                 user.photo_url,
-                lambda pix: add_buf(user.photo_url, pix),
+                add_buf,
                 (width[user_count - 1], width[user_count - 1]),
                 cache=True
             )

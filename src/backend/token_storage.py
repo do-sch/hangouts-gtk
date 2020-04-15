@@ -38,6 +38,7 @@ class TokenStorage():
         def secret_callback(source_object, result, user_data):
             print("looked up in secret")
             self._token_cache = Secret.password_lookup_finish(result)
+            print("lookup finish")
             callback(self._token_cache, user_data)
         Secret.password_lookup(self.SECRET_SCHEMA, {}, None, secret_callback, user_data)
         print("lookup in secret")

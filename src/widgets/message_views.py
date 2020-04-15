@@ -19,7 +19,7 @@ import cairo
 import math
 import os
 
-from gi.repository import Gtk, GLib, Gdk
+from gi.repository import Gtk, GLib, Gdk, Pango
 from ..backend.image_cache import PROFILE_PHOTO_SMALL, SENT_IMAGE_PREVIEW
 
 
@@ -136,6 +136,7 @@ class ChatMessageOwn(Gtk.Box):
             label.set_markup(markup)
             label.set_halign(Gtk.Align.CENTER)
             label.set_line_wrap(True)
+            label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
             label.set_max_width_chars(30)
             label.show()
             self.messages.add(label)
@@ -149,6 +150,7 @@ class ChatMessageOwn(Gtk.Box):
             label.set_markup(markup)
             label.set_halign(Gtk.Align.CENTER)
             label.set_line_wrap(True)
+            label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
             label.set_max_width_chars(30)
             label.show()
             self.messages.prepend(label)
@@ -248,6 +250,7 @@ class ChatMessageForeign(Gtk.Box):
             label.set_markup(markup)
             label.set_halign(Gtk.Align.CENTER)
             label.set_line_wrap(True)
+            label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
             label.set_max_width_chars(30)
             label.show()
             self.messages.add(label)
@@ -261,6 +264,7 @@ class ChatMessageForeign(Gtk.Box):
             label.set_markup(markup)
             label.set_halign(Gtk.Align.CENTER)
             label.set_line_wrap(True)
+            label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
             label.set_max_width_chars(30)
             label.show()
             self.messages.prepend(label)

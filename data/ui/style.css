@@ -161,6 +161,10 @@ background-color: @borders @theme_selected_bg_color, @insensitive_fg_color, @the
 	to {opacity: 0;}
 }
 
+.to_bottom_button {
+  border-radius: 50%;
+}
+
 .to_bottom_button:not(disabled) {
 	animation-name: show;
 	animation-duration: 0.4s;

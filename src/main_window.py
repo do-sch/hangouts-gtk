@@ -188,6 +188,14 @@ class MainWindow(Gtk.ApplicationWindow):
             # show correct chat
             sidebar_element = row.get_children()[0]
             self.__active_id = sidebar_element.get_id()
+
+            if not self.__message_boxes.get(self.__active_id):
+                # create message_box
+                conversation = self.__conversations[self.__active_id]
+                msg_box = MessageBox(conversation, self.__image_cache)
+                self.message_view.add_named(msg_box, self.__active_id)
+                self.__message_boxes[self.__active_id] = msg_box
+
             self.message_view.set_visible_child_name(self.__active_id)
 
             # show conversation edit button
@@ -243,11 +251,8 @@ class MainWindow(Gtk.ApplicationWindow):
         for conversation in conversation_list.get_all():
             # add sidebar element
             self.conversation_sidebar.prepend(ConversationSidebarElement(self, conversation, self.__image_cache))
-            # create message_box
-            msg_box = MessageBox(conversation, self.__image_cache)
+
             conversation_id_str = str(conversation.id_)
-            self.message_view.add_named(msg_box, conversation_id_str)
-            self.__message_boxes[conversation_id_str] = msg_box
             self.__conversations[conversation_id_str] = conversation
 
         self.conversation_sidebar.show_all()

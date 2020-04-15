@@ -189,14 +189,25 @@ class MainWindow(Gtk.ApplicationWindow):
             sidebar_element = row.get_children()[0]
             self.__active_id = sidebar_element.get_id()
 
+            # current conversation
+            conversation = self.__conversations[self.__active_id]
+
             if not self.__message_boxes.get(self.__active_id):
                 # create message_box
-                conversation = self.__conversations[self.__active_id]
                 msg_box = MessageBox(conversation, self.__image_cache)
                 self.message_view.add_named(msg_box, self.__active_id)
                 self.__message_boxes[self.__active_id] = msg_box
 
             self.message_view.set_visible_child_name(self.__active_id)
+
+            # handle right header bar
+            if conversation.name:
+                self.panel_headerbar.set_title(conversation.name)
+            else:
+                self.panel_headerbar.set_title(", ".join(
+                    map(lambda u: u.first_name,
+                        filter(lambda u: not u.is_self, conversation.users)
+                )))
 
             # show conversation edit button
             # self.group_button.set_visible(True)

@@ -222,7 +222,6 @@ class MessageBox(Gtk.Box):
                 self.__pending_messages = 0
                 self.message_sending_spinner.set_visible(False)
         self.__add_event_callback = self.__conversation.connect_on_event(incoming_message)
-        self.__notification_callback = self.__conversation.connect_on_event(self.__notification_handler)
 
         # handle scroll down
         def size_changed(messages, allocation):
@@ -305,15 +304,6 @@ class MessageBox(Gtk.Box):
 
         self.scrolled_window.get_vadjustment().connect("value-changed", on_scrollbar_value_changed)
 
-    def __notification_handler(self, event):
-
-        if isinstance(event, ChatMessageEvent):
-            if event.user_id != self.__own_id and not self.get_toplevel().props.is_active:
-                title = self.__user_dict[event.user_id].full_name
-                notification: Gio.Notification = Gio.Notification.new(title)
-                notification.set_body(event.text)
-                notification.set_default_action_and_target("app.show-conversation", GLib.Variant.new_string(self.__conversation.id_))
-                Gio.Application.get_default().send_notification(self.__conversation.id_, notification)
 
     def __add_events(self, event_list, append_bottom=False):
 

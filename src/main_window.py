@@ -16,6 +16,8 @@
 
 from gi.repository import Gtk, Handy, Gio, GLib
 
+from hangups.conversation_event import (ChatMessageEvent, HangoutEvent)
+
 from .backend.image_cache import ImageCache
 from .backend.hangupswrapper import start_client
 from .backend.token_storage import TokenStorage
@@ -56,6 +58,7 @@ class MainWindow(Gtk.ApplicationWindow):
     __conversations = {}
 
     __message_boxes = {}
+    __user_list = NotImplemented
     __image_cache = NotImplemented
     __disconnect_handler = None
 
@@ -181,33 +184,12 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # handle click on sidebar element
         def selected(box, row: Gtk.ListBoxRow):
-            # show chat side of leaflets
-            self.leaflet.set_visible_child(self.panel_headerbar)
-            self.content_box.set_visible_child(self.message_view)
-
             # show correct chat
             sidebar_element = row.get_children()[0]
-            self.__active_id = sidebar_element.get_id()
+            conv_id = sidebar_element.get_id()
 
-            # current conversation
-            conversation = self.__conversations[self.__active_id]
-
-            if not self.__message_boxes.get(self.__active_id):
-                # create message_box
-                msg_box = MessageBox(conversation, self.__image_cache)
-                self.message_view.add_named(msg_box, self.__active_id)
-                self.__message_boxes[self.__active_id] = msg_box
-
-            self.message_view.set_visible_child_name(self.__active_id)
-
-            # handle right header bar
-            if conversation.name:
-                self.panel_headerbar.set_title(conversation.name)
-            else:
-                self.panel_headerbar.set_title(", ".join(
-                    map(lambda u: u.first_name,
-                        filter(lambda u: not u.is_self, conversation.users)
-                )))
+            # open correct box
+            self.__open_message_box(conv_id)
 
             # show conversation edit button
             # self.group_button.set_visible(True)
@@ -255,16 +237,20 @@ class MainWindow(Gtk.ApplicationWindow):
         return self.props.has_toplevel_focus
 
     def set_client_userlist_conversationlist(self, client, user_list, conversation_list):
-        # TODO: built userlist
         self.__client = client
         self.__disconnect_handler = self.connect("destroy", lambda *args: self.__client.disconnect())
         self.__client.set_active()
+        self.__user_list = user_list
         for conversation in conversation_list.get_all():
             # add sidebar element
             self.conversation_sidebar.prepend(ConversationSidebarElement(self, conversation, self.__image_cache))
 
+            # store conversation
             conversation_id_str = str(conversation.id_)
             self.__conversations[conversation_id_str] = conversation
+
+            # add notification handler
+            conversation.connect_on_event(self.__notification_handler)
 
         self.conversation_sidebar.show_all()
         self.main_stack.set_visible_child_name("content_box")
@@ -291,9 +277,54 @@ class MainWindow(Gtk.ApplicationWindow):
         self.lookup_action("logout").set_enabled(False)
 
 
+    def __open_message_box(self, conversation_id):
+        # current conversation
+        conversation = self.__conversations[conversation_id]
+
+        if not self.__message_boxes.get(conversation_id):
+            # create message_box
+            msg_box = MessageBox(conversation, self.__image_cache)
+            self.message_view.add_named(msg_box, conversation_id)
+            self.__message_boxes[conversation_id] = msg_box
+
+        self.message_view.set_visible_child_name(conversation_id)
+        self.__active_id = conversation_id
+
+        # show chat side of leaflets
+        self.leaflet.set_visible_child(self.panel_headerbar)
+        self.content_box.set_visible_child(self.message_view)
+
+        # handle right header bar
+        if conversation.name:
+            self.panel_headerbar.set_title(conversation.name)
+        else:
+            self.panel_headerbar.set_title(", ".join(
+                map(lambda u: u.first_name,
+                    filter(lambda u: not u.is_self, conversation.users)
+            )))
+
     def __notification_clicked(self, action, variant: GLib.Variant):
-        self.show()
-        self.message_view.set_visible_child_name(variant.get_string())
+        self.present()
+        self.__open_message_box(variant.get_string())
+
+
+    def __notification_handler(self, event):
+        emmiter = self.__user_list.get_user(event.user_id)
+        if isinstance(event, ChatMessageEvent):
+            if not emmiter.is_self and not self.props.is_active:
+                title = emmiter.full_name
+
+                notification: Gio.Notification = Gio.Notification.new(title)
+                notification.set_body(event.text)
+                notification.set_priority(Gio.NotificationPriority.HIGH)
+                notification.set_default_action_and_target(
+                    "app.show-conversation",
+                    GLib.Variant.new_string(event.conversation_id)
+                )
+                Gio.Application.get_default().send_notification(
+                    event.conversation_id,
+                    notification
+                )
 
     def auth_error(self):
         pass

@@ -20,6 +20,7 @@ import math
 import datetime
 
 from hangups.conversation_event import (ChatMessageEvent, OTREvent, RenameEvent, MembershipChangeEvent, HangoutEvent, GroupLinkSharingModificationEvent)
+from hangups.parsers import WatermarkNotification
 
 
 @Gtk.Template(resource_path="/com/dosch/HangoutsGTK/ui/conversation_sidebar_element.ui")
@@ -63,7 +64,20 @@ class ConversationSidebarElement(Gtk.Box):
         # set conversation name
         conversation_name = conversation.name
         if conversation_name is None:
-            conversation_name = ", ".join(map(lambda u: u.first_name, filter(lambda u: not u.is_self, conversation.users)))
+            if len(conversation.users) > 2:
+                conversation_name = ", ".join(
+                    map(
+                        lambda u: u.first_name,
+                        filter(lambda u: not u.is_self, conversation.users)
+                    )
+                )
+            else:
+                conversation_name = ", ".join(
+                    map(
+                        lambda u: u.full_name,
+                        filter(lambda u: not u.is_self, conversation.users)
+                    )
+                )
         self.group_name.set_text(conversation_name)
 
         # set last_event string
@@ -191,6 +205,12 @@ class ConversationSidebarElement(Gtk.Box):
         # add listener to change class, if self apart of conversation
         if self.__my_id:
             self.__calback_water = self.__conversation.connect_on_watermark_notification(read_status_changed)
+
+        # call read_status_changed so that correct class is set
+        for unread in self.__conversation.unread_events:
+            if isinstance(unread, (ChatMessageEvent)):
+                self.text_boxes.get_style_context().add_class("new_message")
+                break
 
     def get_id(self):
         return str(self.__conversation.id_)

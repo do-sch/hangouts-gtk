@@ -58,9 +58,6 @@ class ConversationSidebarElement(Gtk.Box):
             elif isinstance(event, OTREvent):
                 pass
 
-        # TODO: add observer to change last_message and mark if unread messages are avaliable and remove observer
-        # self.connect("destroy", )
-
         # set conversation name
         conversation_name = conversation.name
         if conversation_name is None:

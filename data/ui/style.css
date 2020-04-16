@@ -122,7 +122,7 @@ background-color: @borders @theme_selected_bg_color, @insensitive_fg_color, @the
 	border: 1px solid @borders;
 	border-radius: 4px;
 	margin: 4px;
-	background-color: @theme_selected_fg_color;
+	background-color: shade(@theme_bg_color, 2);
 }
 
 .text_input_window {

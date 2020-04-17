@@ -30,9 +30,12 @@ from .main_window import MainWindow
 
 
 class Application(Gtk.Application):
+
+    __start_hidden = False
+
     def __init__(self):
         super().__init__(application_id='com.dosch.HangoutsGTK',
-                         flags=Gio.ApplicationFlags.FLAGS_NONE)
+                         flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
 
         # set GLib stuff
         GLib.set_application_name("HangoutsGTK")
@@ -41,15 +44,43 @@ class Application(Gtk.Application):
         # set style
         provider = Gtk.CssProvider()
         provider.load_from_resource("/com/dosch/HangoutsGTK/ui/style.css")
-        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
 
+        # add --hidden option
+        self.add_main_option(
+            "hidden",
+            b"d",
+            GLib.OptionFlags.NONE,
+            GLib.OptionArg.NONE,
+            "Start hangouts-gtk hidden",
+            None
+        )
+
+        self.connect("command-line", self.handle_command_line)
 
     def do_activate(self):
         win = self.props.active_window
         if not win:
             win = MainWindow(application=self)
             win.set_default_icon_name(self.props.application_id)
-        win.present()
+            if not self.__start_hidden:
+                win.present()
+        else:
+            win.present()
+
+
+    def handle_command_line(self, application, command_line):
+        options = command_line.get_options_dict()
+        if options.contains("hidden"):
+            self.__start_hidden = True
+
+        self.activate()
+        return -1
+
 
 
 def main(version):

@@ -16,7 +16,7 @@ dependency('webkit2gtk-4.0', version: '>=2.24')
 # directories
 pkgdatadir = join_paths(get_option('prefix'), get_option('datadir'), meson.project_name())
 moduledir = join_paths(pkgdatadir, 'hangouts_gtk')
-dbus_services_dir = join_paths(pkgdatadir, 'dbus-1', 'services')
+dbus_services_dir = join_paths(get_option('datadir'), 'dbus-1', 'services')
 
 subdir('data')
 subdir('src')

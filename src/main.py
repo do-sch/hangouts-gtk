@@ -26,16 +26,17 @@ gi.require_version('Pango', '1.0')
 
 from gi.repository import Gtk, Gio, Gdk, GLib
 
+from .backend.service import Service
 from .main_window import MainWindow
 
 
 class Application(Gtk.Application):
 
-    __start_hidden = False
+    service = None
 
     def __init__(self):
         super().__init__(application_id='com.dosch.HangoutsGTK',
-                         flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
+                         flags=Gio.ApplicationFlags.FLAGS_NONE)
 
         # set GLib stuff
         GLib.set_application_name("HangoutsGTK")
@@ -50,37 +51,59 @@ class Application(Gtk.Application):
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
 
-        # add --hidden option
-        self.add_main_option(
-            "hidden",
-            b"d",
-            GLib.OptionFlags.NONE,
-            GLib.OptionArg.NONE,
-            "Start hangouts-gtk hidden",
-            None
-        )
+        self.service = Service()
 
-        self.connect("command-line", self.handle_command_line)
 
     def do_activate(self):
+        pass
         win = self.props.active_window
         if not win:
-            win = MainWindow(application=self)
+            win = MainWindow(application=self, service=self.service)
             win.set_default_icon_name(self.props.application_id)
-            if not self.__start_hidden:
-                win.present()
-        else:
-            win.present()
+        win.present()
 
 
-    def handle_command_line(self, application, command_line):
-        options = command_line.get_options_dict()
-        if options.contains("hidden"):
-            self.__start_hidden = True
+    def do_startup(self):
+        Gtk.Application.do_startup(self)
+        self.__add_actions()
 
+
+    def __add_actions(self):
+        logout = Gio.SimpleAction.new("logout")
+        logout.set_enabled(False)
+        logout.connect("activate", lambda a, v: self.service.logout())
+        self.add_action(logout)
+
+        quit = Gio.SimpleAction.new("quit")
+        quit.set_enabled(True)
+        quit.connect("activate", self.__quit)
+        self.add_action(quit)
+
+        show_conversation = Gio.SimpleAction.new(
+            "show-conversation",
+            GLib.VariantType.new("s")
+        )
+        show_conversation.connect("activate", self.__show_notification)
+        self.add_action(show_conversation)
+
+
+    def __logout(self, action, variant):
+        win = self.props.active_window
+        if win:
+            win.activate_action("logout")
+        self.service.logout()
+
+
+    def __quit(self, action, variant):
+        win = self.props.active_window
+        if win:
+            win.activate_action("quit")
+        self.service.quit()
+
+
+    def __show_notification(self, action, variant):
         self.activate()
-        return -1
-
+        self.props.active_window.activate_action("show-conversation", variant)
 
 
 def main(version):

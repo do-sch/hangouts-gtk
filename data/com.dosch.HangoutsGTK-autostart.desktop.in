@@ -5,10 +5,10 @@ Comment=Send Google Hangouts Messages
 # Translators: Do NOT translate or transliterate this text (this is an icon file name)!
 Icon=com.dosch.HangoutsGTK
 TryExec=hangouts-gtk
-Exec=hangouts-gtk --hidden
+Exec=hangouts-gtk --gapplication-service
 Terminal=false
 Type=Application
-Categories=GNOME;GTK;Messaging;Internet;
+Categories=GNOME;GTK;Network;Chat;InstantMessaging;VideoConference;
 # Translators: Search terms to find this application. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
 Keywords=Internet;Messaging;Hangouts;Hangups;
 StartupNotify=true

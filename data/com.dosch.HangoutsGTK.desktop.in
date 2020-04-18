@@ -8,7 +8,7 @@ TryExec=hangouts-gtk
 Exec=hangouts-gtk
 Terminal=false
 Type=Application
-Categories=GNOME;GTK;Messaging;Internet;
+Categories=GNOME;GTK;Network;Chat;InstantMessaging;VideoConference;
 # Translators: Search terms to find this application. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
 Keywords=Internet;Messaging;Hangouts;Hangups;
 StartupNotify=true

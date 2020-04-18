@@ -101,6 +101,7 @@
                 <property name="show_close_button">True</property>
                 <child>
                   <object class="GtkButton" id="back">
+                    <property name="visible">False</property>
                     <property name="can_focus">False</property>
                     <property name="receives_default">False</property>
                     <property name="valign">center</property>

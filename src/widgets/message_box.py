@@ -53,8 +53,9 @@ class MessageBox(Gtk.Box):
         self.__image_cache = image_cache
         self.__last_event = self.__first_event = None
         self.__pending_messages = 0
+        self.__scroll_down = True
 
-        self.connect("destory", self.destroy)
+        self.connect("destroy", self.destroy)
 
         # cache all users of conversation
         self.__user_dict = {}

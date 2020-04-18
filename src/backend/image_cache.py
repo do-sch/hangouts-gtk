@@ -83,6 +83,7 @@ class ImageCache:
             response = requests.get(url)
             input_stream = Gio.MemoryInputStream.new_from_data(response.content, None)
             pixbuf = Pixbuf.new_from_stream(input_stream, None)
+            input_stream.close()
 
             self.__sem.acquire()
             # pass image to every callback

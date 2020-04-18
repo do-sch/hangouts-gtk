@@ -54,6 +54,8 @@ class MessageBox(Gtk.Box):
         self.__last_event = self.__first_event = None
         self.__pending_messages = 0
 
+        self.connect("destory", self.destroy)
+
         # cache all users of conversation
         self.__user_dict = {}
         for user in conversation.users:
@@ -358,3 +360,7 @@ class MessageBox(Gtk.Box):
     def focus(self):
         self.__conversation.update_read_timestamp()
         Gio.Application.get_default().withdraw_notification(self.__conversation.id_)
+
+
+    def destroy(self, widget):
+        self.__conversation.disconnect_on_event(self.__add_event_callback)

@@ -26,14 +26,6 @@ SENT_IMAGE_PREVIEW = (200, 200)
 
 class ImageCache:
 
-    #__scaled_image_dict: dict = NotImplemented  # contains cache of scaled images
-    #__raw_image_dict: dict = NotImplemented     # contains cache of raw images
-    #__request_threads_lock = threading.Lock()
-    #__request_threads = set()
-
-    __sem = NotImplemented
-    __image_dict = NotImplemented
-
     # create ImageCache TODO: load cache from .cache directory
     def __init__(self):
         self.__raw_image_dict = dict()

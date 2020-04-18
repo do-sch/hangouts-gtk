@@ -33,7 +33,6 @@ class ConversationSidebarElement(Gtk.Box):
     active_time: Gtk.Label = Gtk.Template.Child()
     last_message: Gtk.Label = Gtk.Template.Child()
 
-    __conversation = NotImplemented
 
     def __init__(self, main_window, conversation, image_cache, *args, **kwargs):
         super().__init__(*args, **kwargs)

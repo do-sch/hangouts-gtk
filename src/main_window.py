@@ -46,20 +46,9 @@ class MainWindow(Gtk.ApplicationWindow):
     group_button: Gtk.Button = Gtk.Template.Child()
     hangout_button: Gtk.Button = Gtk.Template.Child()
 
-    conversation_sidebar = NotImplemented
-
-    login_window = NotImplemented
-
-    __service = NotImplemented
-    __conversation_list = NotImplemented
-
-    __active_id = None
-
 
     def __init__(self, service, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        print("created window")
 
         self.__assemble_login()
         self.__assemble_sidebar()
@@ -74,7 +63,7 @@ class MainWindow(Gtk.ApplicationWindow):
         # communicate with hangups
         self.__service = service
         self.__service.get_conversation_list_async(self.__get_conversation_list)
-        print("poist get_conversation_list_async")
+        self.__active_id = None
 
 
     def __assemble_header_bar_elements(self):

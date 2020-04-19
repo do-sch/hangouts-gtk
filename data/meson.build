@@ -1,3 +1,5 @@
+desktop_output = []
+
 # Translate and install desktop file
 desktop_file = i18n.merge_file(
   input: 'com.dosch.HangoutsGTK.desktop.in',
@@ -7,14 +9,28 @@ desktop_file = i18n.merge_file(
   install: true,
   install_dir: join_paths(get_option('datadir'), 'applications')
 )
+desktop_output += desktop_file
 
-# Validate desktop file
-desktop_utils = find_program('desktop-file-validate', required: false)
-if desktop_utils.found()
-  test('Validate desktop file', desktop_utils,
-    args: [desktop_file]
-  )
-endif
+# Translate and install autostart desktop file
+autostart_file = i18n.merge_file(
+  input: 'com.dosch.HangoutsGTK-autostart.desktop.in',
+  output: 'com.dosch.HangoutsGTK-autostart.desktop',
+  type: 'desktop',
+  po_dir: '../po',
+  install: true,
+  install_dir: join_paths(get_option('datadir'), 'applications')
+)
+desktop_output += autostart_file
+
+# Validate desktop files
+foreach desktop_file: desktop_output
+  desktop_utils = find_program('desktop-file-validate', required: false)
+  if desktop_utils.found()
+    test('Validate desktop file', desktop_utils,
+      args: [desktop_file]
+    )
+  endif
+endforeach
 
 # Translate and install appdata file
 appstream_file = i18n.merge_file(
@@ -47,7 +63,6 @@ if compile_schemas.found()
 endif
 
 # Compile resources
-pkgdatadir = join_paths(get_option('prefix'), get_option('datadir'), meson.project_name())
 gnome = import('gnome')
 gnome.compile_resources('hangouts-gtk',
   'hangouts_gtk.gresource.xml',
@@ -60,4 +75,16 @@ gnome.compile_resources('hangouts-gtk',
 install_data(
     join_paths('icons', 'com.dosch.HangoutsGTK.svg'),
     install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'icons', 'hicolor', 'scalable', 'apps')
+)
+
+# Install DBus service
+service_conf = configuration_data()
+service_conf.set('bindir', get_option('bindir'))
+
+configure_file(
+  input: 'com.dosch.HangoutsGTK.service.in',
+  output: 'com.dosch.HangoutsGTK.service',
+  configuration: service_conf,
+  install: true,
+  install_dir: dbus_services_dir
 )

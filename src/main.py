@@ -26,10 +26,14 @@ gi.require_version('Pango', '1.0')
 
 from gi.repository import Gtk, Gio, Gdk, GLib
 
+from .backend.service import Service
 from .main_window import MainWindow
 
 
 class Application(Gtk.Application):
+
+    service = None
+
     def __init__(self):
         super().__init__(application_id='com.dosch.HangoutsGTK',
                          flags=Gio.ApplicationFlags.FLAGS_NONE)
@@ -41,15 +45,66 @@ class Application(Gtk.Application):
         # set style
         provider = Gtk.CssProvider()
         provider.load_from_resource("/com/dosch/HangoutsGTK/ui/style.css")
-        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+
+        self.service = Service()
 
 
     def do_activate(self):
+        pass
         win = self.props.active_window
         if not win:
-            win = MainWindow(application=self)
+            win = MainWindow(application=self, service=self.service)
             win.set_default_icon_name(self.props.application_id)
         win.present()
+
+
+    def do_startup(self):
+        Gtk.Application.do_startup(self)
+        self.__add_actions()
+
+
+    def __add_actions(self):
+        logout = Gio.SimpleAction.new("logout")
+        logout.set_enabled(False)
+        logout.connect("activate", lambda a, v: self.service.logout())
+        self.add_action(logout)
+
+        quit = Gio.SimpleAction.new("quit")
+        quit.set_enabled(True)
+        quit.connect("activate", self.__quit)
+        self.add_action(quit)
+
+        show_conversation = Gio.SimpleAction.new(
+            "show-conversation",
+            GLib.VariantType.new("s")
+        )
+        show_conversation.connect("activate", self.__show_notification)
+        self.add_action(show_conversation)
+
+
+    def __logout(self, action, variant):
+        win = self.props.active_window
+        if win:
+            win.activate_action("logout")
+        self.service.logout()
+
+
+    def __quit(self, action, variant):
+        print("quit")
+        win = self.props.active_window
+        if win:
+            win.activate_action("quit")
+        self.service.quit()
+
+
+    def __show_notification(self, action, variant):
+        self.activate()
+        self.props.active_window.activate_action("show-conversation", variant)
 
 
 def main(version):

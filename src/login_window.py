@@ -26,10 +26,11 @@ class LoginWindow(Handy.Dialog):
     intern_box = Gtk.Template.Child()
     intern_action_area = Gtk.Template.Child()
 
-    oauth_code = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.oauth_code = None
 
         self.set_size_request(500, 500)
         self.set_modal(True)

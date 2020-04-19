@@ -31,8 +31,10 @@ class TokenStorage():
 
     _token_cache = NotImplemented
 
+
     def store_refresh_token(self, token):
         Secret.password_store(self.SECRET_SCHEMA, {}, None, "refresh_token", token, None, None, None)
+
 
     def get_refresh_token(self, callback, user_data=None):
         def secret_callback(source_object, result, user_data):
@@ -43,11 +45,13 @@ class TokenStorage():
         Secret.password_lookup(self.SECRET_SCHEMA, {}, None, secret_callback, user_data)
         print("lookup in secret")
 
+
     def get_refresh_token_cached(self, callback, user_data=None):
         if self._token_cache is NotImplemented:
             self.get_refresh_token(callback, user_data)
         else:
             callback(self._token_cache, user_data)
+
 
     def reset_refresh_token(self):
         Secret.password_clear(self.SECRET_SCHEMA, {}, None, None, None)

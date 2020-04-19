@@ -33,10 +33,11 @@ class ConversationSidebarElement(Gtk.Box):
     active_time: Gtk.Label = Gtk.Template.Child()
     last_message: Gtk.Label = Gtk.Template.Child()
 
-    __conversation = NotImplemented
 
     def __init__(self, main_window, conversation, image_cache, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.connect("destroy", self.destroy)
 
         # set conversation
         self.__conversation = conversation
@@ -199,9 +200,9 @@ class ConversationSidebarElement(Gtk.Box):
             wm.user_id = self.__my_id
             read_status_changed(wm)
 
-        # add listener to change class, if self apart of conversation
+        # add listener to change class, if self part of conversation
         if self.__my_id:
-            self.__calback_water = self.__conversation.connect_on_watermark_notification(read_status_changed)
+            self.__callback_water = self.__conversation.connect_on_watermark_notification(read_status_changed)
 
         # call read_status_changed so that correct class is set
         for unread in self.__conversation.unread_events:
@@ -211,3 +212,9 @@ class ConversationSidebarElement(Gtk.Box):
 
     def get_id(self):
         return str(self.__conversation.id_)
+
+
+    def destroy(self, widget):
+        self.__conversation.disconnect_on_event(self.__on_event_callback)
+        if self.__my_id:
+            self.__conversation.disconnect_on_watermark_notification(self.__callback_water)

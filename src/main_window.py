@@ -19,8 +19,7 @@ from gi.repository import Gtk, Handy, Gio, GLib
 from hangups.conversation_event import (ChatMessageEvent, HangoutEvent)
 
 from .backend.image_cache import ImageCache
-from .backend.hangupswrapper import start_client
-from .backend.token_storage import TokenStorage
+from .backend.service import Service
 
 from .widgets.conversation_sidebar_element import ConversationSidebarElement
 from .widgets.conversation_sidebar import ConversationSidebar
@@ -47,98 +46,27 @@ class MainWindow(Gtk.ApplicationWindow):
     group_button: Gtk.Button = Gtk.Template.Child()
     hangout_button: Gtk.Button = Gtk.Template.Child()
 
-    conversation_sidebar = NotImplemented
 
-    login_window = NotImplemented
-
-    token_storage = None
-    __client = None
-
-    __active_id = None
-    __conversations = {}
-
-    __message_boxes = {}
-    __user_list = NotImplemented
-    __image_cache = NotImplemented
-    __disconnect_handler = None
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, service, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.__assemble_login()
         self.__assemble_sidebar()
         self.__assemble_header_bar_elements()
 
-        self.set_size_request(300, 500)
+        self.__add_actions()
 
-        # handle existing refresh_token
-        def get_token(token, user_data=None):
-            print("got token")
-            # nobody was logged in previously
-            if not token:
-                self.main_stack.set_visible_child_name("login_page")
-            # create client from token stuff
-            else:
-                def get_userlist_conversationlist(client, userlist, conversationlist):
-                    print("logged in")
-                    self.set_client_userlist_conversationlist(client, userlist, conversationlist)
-
-                start_client(
-                    (get_userlist_conversationlist, self.auth_error, self.network_error, self.undefined_error),
-                    self.token_storage
-                )
-
-        # call TokenStorage to asynchronously get refresh_token from storage
-        self.token_storage = TokenStorage()
-        self.token_storage.get_refresh_token(get_token)
-
-        # handle click on call button
-        def hangout_button_clicked(button):
-            for c in self.__message_boxes:
-                print(c)
-                conv_id = c
-            return
-            uri = "https://plus.google.com/hangouts/_/CONVERSATION/#{0}".format(conv_id)
-            Gio.AppInfo.launch_default_for_uri(uri)
-
-        self.hangout_button.connect("clicked", hangout_button_clicked)
+        #self.set_size_request(300, 500)
+        self.set_default_size(800, 600)
 
         # create ImageCache
         self.__image_cache = ImageCache()
 
-        # handle focus
-        def focused(window, event):
-            visible_child = self.message_view.get_visible_child()
-            if isinstance(visible_child, MessageBox):
-                visible_child.focus()
+        # communicate with hangups
+        self.__service = service
+        self.__service.get_conversation_list_async(self.__get_conversation_list)
+        self.__active_id = None
 
-        self.connect("focus-in-event", focused)
-
-        # add actions
-        show_conversation_action = Gio.SimpleAction.new("show-conversation", GLib.VariantType.new('s'))
-        show_conversation_action.connect("activate", self.__notification_clicked)
-        self.props.application.add_action(show_conversation_action)
-
-        logout = Gio.SimpleAction.new("logout")
-        logout.set_enabled(False)
-        logout.connect("activate", lambda action, val: self.logout())
-        self.add_action(logout)
-
-        quit = Gio.SimpleAction.new("quit")
-        quit.set_enabled(True)
-        quit.connect("activate", lambda action, val: self.destroy())
-        self.add_action(quit)
-
-        # prevent Application from being destroyed by clicking close
-        def on_close(window, event):
-            if self.main_stack.get_visible_child() is self.content_box:
-                self.hide();
-                return True
-
-            return False
-
-        self.connect("delete-event", on_close)
-        print("init ready")
 
     def __assemble_header_bar_elements(self):
         # back button of right back button
@@ -154,14 +82,18 @@ class MainWindow(Gtk.ApplicationWindow):
                 application=self.get_application(),
                 parent=self,
                 icon_name=self.get_icon_name,
-                flags=Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT | Gtk.DialogFlags.USE_HEADER_BAR,
+                flags=Gtk.DialogFlags.MODAL | \
+                    Gtk.DialogFlags.DESTROY_WITH_PARENT | \
+                    Gtk.DialogFlags.USE_HEADER_BAR
             )
 
             # add content to dialog
-            conversation_edit_window.get_content_area().add(ConversationEditPanel(
-                self.__conversations[self.__active_id],
-                self.__image_cache
-            ))
+            conversation_edit_window.get_content_area().add(
+                ConversationEditPanel(
+                    self.__conversations[self.__active_id],
+                    self.__image_cache
+                )
+            )
 
             # run Dialog
             conversation_edit_window.run()
@@ -169,13 +101,31 @@ class MainWindow(Gtk.ApplicationWindow):
 
         self.group_button.connect("clicked", open_conversation_edit_window)
 
-        menu = Gtk.Builder().new_from_resource("/com/dosch/HangoutsGTK/ui/popover_menu.ui").get_object("popover_menu")
+        menu = Gtk.Builder() \
+            .new_from_resource("/com/dosch/HangoutsGTK/ui/popover_menu.ui") \
+            .get_object("popover_menu")
         popover_menu = Gtk.Popover.new_from_model(self.menu_button, menu)
         self.menu_button.set_popover(popover_menu)
 
         # show and hide back button on fold and unfold
-        self.leaflet.connect("notify::folded", lambda _, fold: self.back.set_visible(self.leaflet.get_property("folded")))
-        self.back.set_visible(self.leaflet.get_property("hhomogeneous-folded"))
+        self.leaflet.connect(
+            "notify::folded",
+            lambda _, fold: \
+                self.back.set_visible(self.leaflet.get_property("folded")))
+        #self.back.set_visible(self.leaflet.get_property("hhomogeneous-folded"))
+
+        # handle click on call button
+        def hangout_button_clicked(button):
+            for c in self.__message_boxes:
+                print(c)
+                conv_id = c
+            return
+            uri = "https://plus.google.com/hangouts/_/CONVERSATION/#{0}"\
+                .format(conv_id)
+            Gio.AppInfo.launch_default_for_uri(uri)
+
+        self.hangout_button.connect("clicked", hangout_button_clicked)
+
 
     def __assemble_sidebar(self):
         # create sidebar
@@ -189,7 +139,7 @@ class MainWindow(Gtk.ApplicationWindow):
             conv_id = sidebar_element.get_id()
 
             # open correct box
-            self.__open_message_box(conv_id)
+            self.__open_message_box(None, GLib.Variant("s", conv_id))
 
             # show conversation edit button
             # self.group_button.set_visible(True)
@@ -198,6 +148,15 @@ class MainWindow(Gtk.ApplicationWindow):
             "row-activated",
             selected
         )
+
+        # handle focus
+        def focused(window, event):
+            visible_child = self.message_view.get_visible_child()
+            if isinstance(visible_child, MessageBox):
+                visible_child.focus()
+
+        self.connect("focus-in-event", focused)
+
 
     def __assemble_login(self):
 
@@ -212,7 +171,9 @@ class MainWindow(Gtk.ApplicationWindow):
                 title="Log In",
                 parent=self,
                 icon_name=self.get_icon_name,
-                flags=Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT | Gtk.DialogFlags.USE_HEADER_BAR
+                flags=Gtk.DialogFlags.MODAL | \
+                    Gtk.DialogFlags.DESTROY_WITH_PARENT | \
+                    Gtk.DialogFlags.USE_HEADER_BAR
             )
 
             # run Dialog
@@ -224,11 +185,7 @@ class MainWindow(Gtk.ApplicationWindow):
             # got oauth_code
             if response == Gtk.ResponseType.OK:
                 self.main_stack.set_visible_child_name("loading_state")
-                start_client(
-                    (self.set_client_userlist_conversationlist, self.auth_error, self.network_error, self.undefined_error),
-                    self.token_storage,
-                    oauth_code
-                )
+                self.__service.tell_oauth_token(oauth_code)
 
         # connect handler to signal
         self.login_button.connect("clicked", login_button_clicked)
@@ -236,56 +193,65 @@ class MainWindow(Gtk.ApplicationWindow):
     def has_focus(self):
         return self.props.has_toplevel_focus
 
-    def set_client_userlist_conversationlist(self, client, user_list, conversation_list):
-        self.__client = client
-        self.__disconnect_handler = self.connect("destroy", lambda *args: self.__client.disconnect())
-        self.__client.set_active()
-        self.__user_list = user_list
+
+    def __get_conversation_list(self, conversation_list):
+        # TODO: self.__service.set_active()
+
+        if conversation_list is None:
+            self.main_stack.set_visible_child_name("login_page")
+            print("show login_page")
+            return
+
+        self.__conversation_list = conversation_list
         for conversation in conversation_list.get_all():
-            # add sidebar element
-            self.conversation_sidebar.prepend(ConversationSidebarElement(self, conversation, self.__image_cache))
-
-            # store conversation
-            conversation_id_str = str(conversation.id_)
-            self.__conversations[conversation_id_str] = conversation
-
-            # add notification handler
-            conversation.connect_on_event(self.__notification_handler)
+            self.conversation_sidebar.prepend(
+                ConversationSidebarElement(
+                    self, conversation, self.__image_cache
+                )
+            )
 
         self.conversation_sidebar.show_all()
         self.main_stack.set_visible_child_name("content_box")
 
-        # set titlebar buttons visible
+        if self.__active_id:
+            self.__open_message_box(
+                None,
+                GLib.Variant.new("s", self.__active_id)
+            )
+
         self.leaflet.show()
 
-        # enable logout
-        self.lookup_action("logout").set_enabled(True)
 
-    def logout(self):
-        print("logout...")
-        self.token_storage.reset_refresh_token()
-        self.__client.disconnect()
+    def __logout(self):
         self.main_stack.set_visible_child_name("login_page")
-        self.message_view.foreach(lambda child, x: self.message_view.remove(child), None)
+        self.message_view.foreach(
+            lambda child, x: self.message_view.remove(child), None
+        )
         self.conversation_list_viewport.remove(self.conversation_sidebar)
-        self.disconnect(self.__disconnect_handler)
         self.__conversations = {}
-        self.__message_boxes = {}
         self.__client = None
         self.__active_id = None
         # disable logout
         self.lookup_action("logout").set_enabled(False)
 
 
-    def __open_message_box(self, conversation_id):
-        # current conversation
-        conversation = self.__conversations[conversation_id]
+    def __open_message_box(self, _action, variant):
 
-        if not self.__message_boxes.get(conversation_id):
+        # get conversation_id
+        conversation_id = variant.get_string()
+
+        # come back later if __conversation_list ist not set
+        if not self.__conversation_list:
+            self.__active_id = conversation_id
+            return
+
+        # current conversation
+        conversation = self.__conversation_list.get(conversation_id)
+
+        if not self.message_view.get_child_by_name(conversation_id):
             # create message_box
             msg_box = MessageBox(conversation, self.__image_cache)
             self.message_view.add_named(msg_box, conversation_id)
-            self.__message_boxes[conversation_id] = msg_box
 
         self.message_view.set_visible_child_name(conversation_id)
         self.__active_id = conversation_id
@@ -299,38 +265,25 @@ class MainWindow(Gtk.ApplicationWindow):
             self.panel_headerbar.set_title(conversation.name)
         else:
             self.panel_headerbar.set_title(", ".join(
-                map(lambda u: u.first_name,
+                map(lambda u: u.full_name,
                     filter(lambda u: not u.is_self, conversation.users)
             )))
 
-    def __notification_clicked(self, action, variant: GLib.Variant):
-        self.present()
-        self.__open_message_box(variant.get_string())
 
+    def __add_actions(self):
+        show_conversation = Gio.SimpleAction.new(
+            "show-conversation",
+            GLib.VariantType.new("s")
+        )
+        show_conversation.connect("activate", self.__open_message_box)
+        self.add_action(show_conversation)
 
-    def __notification_handler(self, event):
-        emmiter = self.__user_list.get_user(event.user_id)
-        if isinstance(event, ChatMessageEvent):
-            if not emmiter.is_self and not self.props.is_active:
-                title = emmiter.full_name
+        quit = Gio.SimpleAction.new("quit")
+        quit.set_enabled(True)
+        quit.connect("activate", lambda a, v: self.destroy())
+        self.add_action(quit)
 
-                notification: Gio.Notification = Gio.Notification.new(title)
-                notification.set_body(event.text)
-                notification.set_priority(Gio.NotificationPriority.HIGH)
-                notification.set_default_action_and_target(
-                    "app.show-conversation",
-                    GLib.Variant.new_string(event.conversation_id)
-                )
-                Gio.Application.get_default().send_notification(
-                    event.conversation_id,
-                    notification
-                )
-
-    def auth_error(self):
-        pass
-
-    def network_error(self):
-        pass
-
-    def undefined_error(self):
-        pass
+        logout = Gio.SimpleAction.new("logout")
+        logout.set_enabled(True)
+        logout.connect("activate", lambda a, v: self.logout())
+        self.add_action(logout)

@@ -44,14 +44,6 @@ class MessageBox(Gtk.Box):
     message_sending_spinner: Gtk.Spinner = Gtk.Template.Child()
     to_bottom_button: Gtk.Button = Gtk.Template.Child()
 
-    __conversation = NotImplemented
-    __image_cache = NotImplemented
-    __user_dict = NotImplemented
-    __own_id = NotImplemented
-
-    __send_file = None
-    __scroll_down = True
-    __pending_messages = 0
 
     def __init__(self, conversation, image_cache, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -60,6 +52,11 @@ class MessageBox(Gtk.Box):
         self.__own_id = next(filter(lambda u: u.is_self, conversation.users), None).id_
         self.__image_cache = image_cache
         self.__last_event = self.__first_event = None
+        self.__pending_messages = 0
+        self.__scroll_down = True
+        self.__send_file = None
+
+        self.connect("destroy", self.destroy)
 
         # cache all users of conversation
         self.__user_dict = {}
@@ -365,3 +362,7 @@ class MessageBox(Gtk.Box):
     def focus(self):
         self.__conversation.update_read_timestamp()
         Gio.Application.get_default().withdraw_notification(self.__conversation.id_)
+
+
+    def destroy(self, widget):
+        self.__conversation.disconnect_on_event(self.__add_event_callback)

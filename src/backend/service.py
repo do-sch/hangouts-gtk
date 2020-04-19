@@ -22,9 +22,10 @@ import _thread
 import asyncio
 import hangups
 
-from gi.repository import Gio
+from gi.repository import Gio, GLib
 from gi.repository.GLib import idle_add
 from hangups import Client as HangupsClient, GoogleAuthError, NetworkError
+from hangups import ChatMessageEvent
 
 from ..backend.token_storage import TokenStorage
 from ..backend.clientwrapper import Client
@@ -119,7 +120,7 @@ class Service(object):
                         self.__conversation_list = ConversationList(
                             conversation_list, self.__asyncio_queue
                         )
-                    # TODO: add userlist
+                        self.__user_list = user_list
 
                     # give lists to waiting clients
                     for cb in self.__get_conversation_callbacks:
@@ -185,10 +186,12 @@ class Service(object):
 
 
     def __incoming_event(self, event):
+        print("incoming event: ", event)
         emmiter = self.__user_list.get_user(event.user_id)
         app = Gio.Application.get_default()
+        win = app.props.active_window
         if isinstance(event, ChatMessageEvent):
-            if not emmiter.is_self and not app.props.is_active:
+            if not emmiter.is_self or win and win.props.is_active:
                 title = emmiter.full_name
 
                 notification: Gio.Notification = Gio.Notification.new(title)
@@ -202,6 +205,7 @@ class Service(object):
                     event.conversation_id,
                     notification
                 )
+                print("noti sent")
 
 
     def tell_oauth_token(self, oauth):

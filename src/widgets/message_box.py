@@ -54,6 +54,7 @@ class MessageBox(Gtk.Box):
         self.__last_event = self.__first_event = None
         self.__pending_messages = 0
         self.__scroll_down = True
+        self.__send_file = None
 
         self.connect("destroy", self.destroy)
 

@@ -180,7 +180,7 @@ class Service(object):
                     tasks,
                     return_when=asyncio.ALL_COMPLETED
                 )
-                self.__log.debug("handled all tasks")
+                self.__log.debug("all tasks processed")
 
 
             asyncio.run(start_hangups_client())

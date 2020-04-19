@@ -118,7 +118,6 @@ class MainWindow(Gtk.ApplicationWindow):
         # handle click on call button
         def hangout_button_clicked(button):
             for c in self.__message_boxes:
-                print(c)
                 conv_id = c
             return
             uri = "https://plus.google.com/hangouts/_/CONVERSATION/#{0}"\
@@ -199,7 +198,6 @@ class MainWindow(Gtk.ApplicationWindow):
 
         if conversation_list is None:
             self.main_stack.set_visible_child_name("login_page")
-            print("show login_page")
             return
 
         self.__service.set_active()

@@ -32,6 +32,8 @@ from ..backend.clientwrapper import Client
 from ..backend.conversationlistwrapper import ConversationList
 from ..backend.conversationwrapper import Conversation
 
+from ..backend.hangoutslogger import HangoutsLogger
+
 class Service(object):
 
     __token_storage = None
@@ -50,17 +52,27 @@ class Service(object):
     __lists_lock = _thread.allocate_lock()
 
     def __init__(self):
+
+        self.__log = HangoutsLogger()
+
         self.__token_storage = TokenStorage()
         self.__token_storage.get_refresh_token(self.__obtain_refresh_token)
 
 
     def __obtain_refresh_token(self, token, user_data=None):
+        self.__log.debug("got token: " + str(token))
         if token:
             # start hangups if token is avaliable
             _thread.start_new_thread(self.__bootup_hangups, (token,))
+        else:
+            for cb in self.__get_conversation_callbacks:
+                cb(None)
+            for cb in self.__get_userlist_callbacks:
+                cb(None)
 
 
     def __bootup_hangups(self, refresh_token=None, oauth_code=None):
+        self.__log.debug("bootup hangups")
         # prevents Application from exiting
         Gio.Application.get_default().hold()
         self.__hangups_running = True
@@ -83,6 +95,7 @@ class Service(object):
                 RefreshTokenCache,
                 manual_login=True
             )
+            self.__log.debug("got auth")
 
             # get hangups client
             hangups_client = HangupsClient(cookies)
@@ -100,10 +113,9 @@ class Service(object):
                     lambda: on_connect.set_result(None)
                 )
 
-
                 # debug
                 hangups_client.on_disconnect.add_observer(
-                    lambda: print("disconnect event")
+                    lambda: self.__log.debug("disconnected")
                 )
 
                 # builds up client and calls waiting callbacks
@@ -113,6 +125,7 @@ class Service(object):
                         hangups_client
                     )
                     user_list, conversation_list = ret
+                    self.__log.debug("built user and conversation list")
 
                     # create wrapper objects
                     self.__client = Client(hangups_client, self.__asyncio_queue)
@@ -127,6 +140,7 @@ class Service(object):
                         idle_add(cb, self.__conversation_list)
                     for cb in self.__get_userlist_callbacks:
                         idle_add(cb, self.__user_list)
+                    self.__log.debug("got callbacks")
 
                     # remove callbacks
                     self.__get_conversation_callbacks.clear()
@@ -140,10 +154,12 @@ class Service(object):
 
                 # work through queue
                 async def run_queue():
+                    self.__log.debug("walking through queue now")
                     queue = self.__asyncio_queue
                     while not queue.empty() or queue.continue_queue:
                         coro = await queue.get()
                         await coro
+                    self.__log.debug("walked through queue")
 
                 # create tasks
                 connect_task = asyncio.create_task(hangups_client.connect())
@@ -157,28 +173,28 @@ class Service(object):
                     run_queue_task
                 )
 
-                print("pre wait")
+                self.__log.debug("created tasks for asyncio")
                 # wait until connected
                 done, _ = await asyncio.wait(
                     tasks,
                     return_when=asyncio.ALL_COMPLETED
                 )
-                print("post wait")
+                self.__log.debug("handled all tasks")
 
 
             asyncio.run(start_hangups_client())
 
         except GoogleAuthError as e:
-            print("GoogleAuthError: ")
-            print(e)
+            self.__log.debug("GoogleAuthError: ")
+            self.__log.warning(e)
             raise e
         except NetworkError as e:
-            print("NetworkError: ")
-            print(e)
+            self.__log.debug("NetworkError: ")
+            self.__log.warning(e)
             raise e
         except Exception as e:
-            print("Exception: ")
-            print(e)
+            self.__log.debug("Exception: ")
+            self.__log.warning(e)
             raise e
 
         self.__hangups_running = False
@@ -186,7 +202,7 @@ class Service(object):
 
 
     def __incoming_event(self, event):
-        print("incoming event: ", event)
+        self.__log.debug("incoming event: ", event)
         emmiter = self.__user_list.get_user(event.user_id)
         app = Gio.Application.get_default()
         win = app.props.active_window
@@ -208,6 +224,7 @@ class Service(object):
 
 
     def tell_oauth_token(self, oauth):
+        self.__log.debug("got oauth_token startin thread to bootup hangups")
         _thread.start_new_thread(__bootup_hangups, (None, oauth))
 
 
@@ -229,13 +246,16 @@ class Service(object):
 
 
     def set_active(self):
+        self.__log.debug("setting active")
         self.__client.set_active()
 
 
     def quit(self):
+        self.__log.debug("disconnect")
         self.__client.disconnect()
 
 
     def logout(self):
+        self.__log.debug("logging out")
         self.__token_storage.reset_refresh_token()
         self.quit()

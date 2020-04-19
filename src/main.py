@@ -29,6 +29,8 @@ from gi.repository import Gtk, Gio, Gdk, GLib
 from .backend.service import Service
 from .main_window import MainWindow
 
+from .backend.hangoutslogger import HangoutsLogger
+
 
 class Application(Gtk.Application):
 
@@ -37,6 +39,7 @@ class Application(Gtk.Application):
     def __init__(self):
         super().__init__(application_id='com.dosch.HangoutsGTK',
                          flags=Gio.ApplicationFlags.FLAGS_NONE)
+        self.__log = HangoutsLogger()
 
         # set GLib stuff
         GLib.set_application_name("HangoutsGTK")
@@ -55,7 +58,7 @@ class Application(Gtk.Application):
 
 
     def do_activate(self):
-        pass
+        self.__log.debug("application activated")
         win = self.props.active_window
         if not win:
             win = MainWindow(application=self, service=self.service)
@@ -64,11 +67,13 @@ class Application(Gtk.Application):
 
 
     def do_startup(self):
+        self.__log.debug("do startup of application")
         Gtk.Application.do_startup(self)
         self.__add_actions()
 
 
     def __add_actions(self):
+        self.__log.debug("added actions")
         logout = Gio.SimpleAction.new("logout")
         logout.set_enabled(False)
         logout.connect("activate", lambda a, v: self.service.logout())
@@ -88,6 +93,7 @@ class Application(Gtk.Application):
 
 
     def __logout(self, action, variant):
+        self.__log.debug("logout action called")
         win = self.props.active_window
         if win:
             win.activate_action("logout")
@@ -95,7 +101,7 @@ class Application(Gtk.Application):
 
 
     def __quit(self, action, variant):
-        print("quit")
+        self.__log.debug("quit action called")
         win = self.props.active_window
         if win:
             win.activate_action("quit")

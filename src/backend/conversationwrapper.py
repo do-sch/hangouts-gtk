@@ -37,7 +37,6 @@ class Conversation(HangupsConversation):
 
     def connect_on_event(self, callback):
         def _callback(conv_event):
-            print("Conversation.connect_on_event_callback")
             idle_add(callback, conv_event)
         self.hangups_conversation.on_event.add_observer(_callback)
         return _callback

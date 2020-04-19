@@ -71,13 +71,17 @@ class Client:
         self.hangups_client.on_state_update.remove_observer(callback)
 
     def disconnect(self):
-        asyncio.run_coroutine_threadsafe(self.hangups_client.disconnect(), self.loop)
+        print("add disconnect to queue")
+        self.queue.continue_queue = False
+        self.loop.call_soon_threadsafe(lambda: self.queue.put_nowait(self.hangups_client.disconnect()))
+        #asyncio.run_coroutine_threadsafe(self.hangups_client.disconnect(), self.loop)
 
     def set_active(self):
         # async def async_set_active():
         #     await self.hangups_client.set_active()
         # self.loop.call_soon_threadsafe(self.queue.put_nowait(lambda: async_set_active()))
-        asyncio.run_coroutine_threadsafe(self.hangups_client.set_active(), self.loop)
+        self.loop.call_soon_threadsafe(lambda: self.queue.put_nowait(self.hangups_client.set_active()))
+        #asyncio.run_coroutine_threadsafe(self.hangups_client.set_active(), self.loop)
 
     def upload_image(self, callback, image_file, filename=None, return_uploaded_image=True):
         async def async_upload_image(callback, image_file, filename, return_uploaded_image):

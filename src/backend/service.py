@@ -91,11 +91,18 @@ class Service(object):
                 # cache loop and queue
                 self.__asyncio_loop = asyncio.get_running_loop()
                 self.__asyncio_queue = asyncio.Queue(loop=self.__asyncio_loop)
+                self.__asyncio_queue.continue_queue = True
 
                 # wait for hangouts to connect or raise an exception
                 on_connect = asyncio.Future()
                 hangups_client.on_connect.add_observer(
                     lambda: on_connect.set_result(None)
+                )
+
+
+                # debug
+                hangups_client.on_disconnect.add_observer(
+                    lambda: print("disconnect event")
                 )
 
                 # builds up client and calls waiting callbacks
@@ -125,15 +132,16 @@ class Service(object):
                     self.__get_userlist_callbacks.clear()
 
                     # enable notifications
-                    conversation_list.on_connect.add_observer(
+                    conversation_list.on_event.add_observer(
                         self.__incoming_event
                     )
 
 
                 # work through queue
                 async def run_queue():
-                    while True:
-                        coro = await self.__asyncio_queue.get()
+                    queue = self.__asyncio_queue
+                    while not queue.empty() or queue.continue_queue:
+                        coro = await queue.get()
                         await coro
 
                 # create tasks
@@ -150,11 +158,11 @@ class Service(object):
 
                 print("pre wait")
                 # wait until connected
-                done, pending = await asyncio.wait(
+                done, _ = await asyncio.wait(
                     tasks,
                     return_when=asyncio.ALL_COMPLETED
                 )
-                print("post connect")
+                print("post wait")
 
 
             asyncio.run(start_hangups_client())

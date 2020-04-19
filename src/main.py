@@ -95,6 +95,7 @@ class Application(Gtk.Application):
 
 
     def __quit(self, action, variant):
+        print("quit")
         win = self.props.active_window
         if win:
             win.activate_action("quit")

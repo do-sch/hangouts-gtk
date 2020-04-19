@@ -54,6 +54,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self.__assemble_sidebar()
         self.__assemble_header_bar_elements()
 
+        self.__add_actions()
+
         #self.set_size_request(300, 500)
         self.set_default_size(800, 600)
 
@@ -277,9 +279,11 @@ class MainWindow(Gtk.ApplicationWindow):
         self.add_action(show_conversation)
 
         quit = Gio.SimpleAction.new("quit")
+        quit.set_enabled(True)
         quit.connect("activate", lambda a, v: self.destroy())
         self.add_action(quit)
 
         logout = Gio.SimpleAction.new("logout")
-        logout.connect("logout", lambda a, v: self.logout())
+        logout.set_enabled(True)
+        logout.connect("activate", lambda a, v: self.logout())
         self.add_action(logout)

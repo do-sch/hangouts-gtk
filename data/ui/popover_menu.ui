@@ -4,15 +4,15 @@
     <section>
         <item>
             <attribute name="label">Logout</attribute>
-            <attribute name="action">win.logout</attribute>
+            <attribute name="action">app.logout</attribute>
         </item>
         <item>
             <attribute name="label">About</attribute>
-            <attribute name="action">win.about</attribute>
+            <attribute name="action">app.about</attribute>
         </item>
         <item>
             <attribute name="label">Quit</attribute>
-            <attribute name="action">win.quit</attribute>
+            <attribute name="action">app.quit</attribute>
         </item>
     </section>
   </menu>

@@ -1,4 +1,4 @@
-# service.py
+# This file is part of Hangouts GTK
 #
 # Copyright 2020 Dominik Schütz <do.sch.dev@gmail.com>
 #

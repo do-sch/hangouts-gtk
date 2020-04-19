@@ -191,7 +191,7 @@ class Service(object):
         app = Gio.Application.get_default()
         win = app.props.active_window
         if isinstance(event, ChatMessageEvent):
-            if not emmiter.is_self or win and win.props.is_active:
+            if not emmiter.is_self and (not win or not win.props.is_active):
                 title = emmiter.full_name
 
                 notification: Gio.Notification = Gio.Notification.new(title)
@@ -205,7 +205,6 @@ class Service(object):
                     event.conversation_id,
                     notification
                 )
-                print("noti sent")
 
 
     def tell_oauth_token(self, oauth):
@@ -227,6 +226,10 @@ class Service(object):
             idle_add(callback, self.__user_list)
         else:
             self.__get_userlist_callbacks.append(callback)
+
+
+    def set_active(self):
+        self.__client.set_active()
 
 
     def quit(self):

@@ -66,6 +66,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.__service = service
         self.__service.get_conversation_list_async(self.__get_conversation_list)
         self.__active_id = None
+        self.__conversation_list = None
 
 
     def __assemble_header_bar_elements(self):
@@ -153,7 +154,7 @@ class MainWindow(Gtk.ApplicationWindow):
         def focused(window, event):
             visible_child = self.message_view.get_visible_child()
             if isinstance(visible_child, MessageBox):
-                visible_child.focus()
+                visible_child.map(visible_child)
 
         self.connect("focus-in-event", focused)
 
@@ -195,12 +196,13 @@ class MainWindow(Gtk.ApplicationWindow):
 
 
     def __get_conversation_list(self, conversation_list):
-        # TODO: self.__service.set_active()
 
         if conversation_list is None:
             self.main_stack.set_visible_child_name("login_page")
             print("show login_page")
             return
+
+        self.__service.set_active()
 
         self.__conversation_list = conversation_list
         for conversation in conversation_list.get_all():
@@ -216,7 +218,7 @@ class MainWindow(Gtk.ApplicationWindow):
         if self.__active_id:
             self.__open_message_box(
                 None,
-                GLib.Variant.new("s", self.__active_id)
+                GLib.Variant("s", self.__active_id)
             )
 
         self.leaflet.show()

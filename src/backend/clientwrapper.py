@@ -33,9 +33,7 @@ class Client:
         self.loop = asyncio.get_running_loop()
 
     def connect_on_event(self, callback):
-        print("Client.connect_on_event")
         def _callback(event):
-            print("Client.connect_on_event.callback")
             idle_add(callback, event)
         self.hangups_client.on_connect.add_observer(_callback)
         return _callback
@@ -71,7 +69,6 @@ class Client:
         self.hangups_client.on_state_update.remove_observer(callback)
 
     def disconnect(self):
-        print("add disconnect to queue")
         self.queue.continue_queue = False
         self.loop.call_soon_threadsafe(lambda: self.queue.put_nowait(self.hangups_client.disconnect()))
         #asyncio.run_coroutine_threadsafe(self.hangups_client.disconnect(), self.loop)

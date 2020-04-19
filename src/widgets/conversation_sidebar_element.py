@@ -32,6 +32,7 @@ class ConversationSidebarElement(Gtk.Box):
     text_boxes: Gtk.Box = Gtk.Template.Child()
     active_time: Gtk.Label = Gtk.Template.Child()
     last_message: Gtk.Label = Gtk.Template.Child()
+    badge: Gtk.Label = Gtk.Template.Child()
 
 
     def __init__(self, main_window, conversation, image_cache, *args, **kwargs):
@@ -176,11 +177,21 @@ class ConversationSidebarElement(Gtk.Box):
                 cache=True
             )
 
+        def update_badge():
+            unread_count = len(self.__conversation.unread_events)
+            if unread_count:
+                self.badge.set_visible(True)
+                self.badge.set_text(str(unread_count))
+            else:
+                self.badge.set_visible(False)
+
+        update_badge()
+
         # recognize new messages
         def on_event(event):
             set_message_string(event)
-            context: Gtk.StyleContext = self.text_boxes.get_style_context()
-            context.add_class("new_message")
+            #context: Gtk.StyleContext = self.badge.get_style_context()
+            update_badge()
 
         self.__on_event_callback = self.__conversation.connect_on_event(on_event)
 
@@ -190,9 +201,9 @@ class ConversationSidebarElement(Gtk.Box):
             self.__my_id = my_user.id_
 
         def read_status_changed(watermark_event):
-            if watermark_event.user_id == self.__my_id and watermark_event.read_timestamp >= self.__conversation.events[-1].timestamp:
-                context: Gtk.StyleContext = self.text_boxes.get_style_context()
-                context.remove_class("new_message")
+            update_badge
+        #    if watermark_event.user_id == self.__my_id and watermark_event.read_timestamp >= self.__conversation.events[-1].timestamp:
+        #        context: Gtk.StyleContext = self.badge.get_style_context()
 
         if self.__my_id:
             wm = type("watermark", (), {})()

@@ -210,7 +210,7 @@ class MainWindow(Gtk.ApplicationWindow):
                 )
             )
 
-        self.conversation_sidebar.show_all()
+        self.conversation_sidebar.show()
         self.main_stack.set_visible_child_name("content_box")
 
         if self.__active_id:
@@ -248,6 +248,13 @@ class MainWindow(Gtk.ApplicationWindow):
         # current conversation
         conversation = self.__conversation_list.get(conversation_id)
 
+        # select matching row
+        def select_matching_row(row):
+            if row.get_children()[0].get_id() == conversation_id:
+                self.conversation_sidebar.select_row(row)
+        self.conversation_sidebar.foreach(select_matching_row)
+
+        # create message_box if not exists
         if not self.message_view.get_child_by_name(conversation_id):
             # create message_box
             msg_box = MessageBox(conversation, self.__image_cache)

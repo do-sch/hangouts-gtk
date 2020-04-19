@@ -51,7 +51,7 @@ class TokenStorage():
         #self.__log.debug("lookup in secret")
         def secret_thread(callback, user_data):
             self.__log.debug("secret thread here")
-            self._token_cache = Secret.password_lookup_sync(
+            self.__token_cache = Secret.password_lookup_sync(
                 self.SECRET_SCHEMA, {}, None
             )
             self.__log.debug("got secret")

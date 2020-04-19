@@ -78,6 +78,7 @@ class Service(object):
         self.__hangups_running = True
         try:
             # those classes will make hangups use TokenStorage with libsecret
+            token_storage = self.__token_storage
             class CredentialsPrompt:
                 def get_authorization_code():
                     return oauth_code
@@ -87,7 +88,7 @@ class Service(object):
                     return refresh_token
 
                 def set(new_refresh_token):
-                    self.__token_storage.store_refresh_token(new_refresh_token)
+                    token_storage.store_refresh_token(new_refresh_token)
 
             # get cookies from login
             cookies = hangups.get_auth(
@@ -225,7 +226,7 @@ class Service(object):
 
     def tell_oauth_token(self, oauth):
         self.__log.debug("got oauth_token startin thread to bootup hangups")
-        _thread.start_new_thread(__bootup_hangups, (None, oauth))
+        _thread.start_new_thread(self.__bootup_hangups, (None, oauth))
 
 
     def get_conversation_list_async(self, callback):

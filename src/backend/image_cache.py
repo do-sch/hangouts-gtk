@@ -32,7 +32,6 @@ class ImageCache:
 
     __REFETCH_TIME = 5 * 60 * 60  # refetch after 5 hours
 
-    # create ImageCache TODO: load cache from .cache directory
     def __init__(self):
         self.__raw_image_dict = dict()
         self.__scaled_image_dict = dict()

@@ -41,9 +41,7 @@ class ImageCache:
         self.__sems = dict()
         self.__image_dict = dict()
 
-        self.__image_cache_dir_path = os.path.join(
-            GLib.get_user_cache_dir(), "images"
-        )
+        self.__image_cache_dir_path = GLib.get_user_cache_dir()
 
         # create cache directory if not exists
         _thread.start_new_thread(
@@ -76,12 +74,12 @@ class ImageCache:
         # look in cache dir
         else:
             filename = url.split("/")[-1]
-            print("filename: ", filename)
             filepath = os.path.join(self.__image_cache_dir_path, filename)
             if GLib.file_test(filepath, GLib.FileTest.EXISTS):
                 pixbuf = Pixbuf.new_from_file(filepath)
 
-                mod_time = os.pstat(filepath).st_mtime
+                mod_time = os.stat(filepath).st_mtime
+                mod_time = datetime.datetime.fromtimestamp(mod_time)
                 # store to ram cache
                 self.__image_dict[url] = (mod_time, pixbuf)
 
@@ -123,9 +121,9 @@ class ImageCache:
         filename = url.split("/")[-1]
         filepath = os.path.join(self.__image_cache_dir_path, filename)
         with open(filepath, "wb") as f:
-            f.write(response.read())
+            f.write(response.content)
         response.close()
-        pixbuf = Pixbuf.new_from_file(filename)
+        pixbuf = Pixbuf.new_from_file(filepath)
         input_stream.close()
         self.__fetch_sem.release()
 

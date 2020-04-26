@@ -16,6 +16,10 @@
 
 import requests
 import _thread
+import threading
+import os
+import datetime
+
 from gi.repository import Gio, GLib
 from gi.repository.GdkPixbuf import Pixbuf, InterpType
 
@@ -26,76 +30,117 @@ SENT_IMAGE_PREVIEW = (200, 200)
 
 class ImageCache:
 
+    __REFETCH_TIME = 5 * 60 * 60  # refetch after 5 hours
+
     # create ImageCache TODO: load cache from .cache directory
     def __init__(self):
         self.__raw_image_dict = dict()
         self.__scaled_image_dict = dict()
 
         self.__sem = _thread.allocate_lock()
+        self.__fetch_sem = _thread.allocate_lock()
+        self.__sems = dict()
         self.__image_dict = dict()
-        self.__fetching_dict = dict()
 
+        self.__image_cache_dir_path = os.path.join(
+            GLib.get_user_cache_dir(), "images"
+        )
 
+        # create cache directory if not exists
+        _thread.start_new_thread(
+            GLib.mkdir_with_parents,
+            (self.__image_cache_dir_path, 0o644)
+        )
+
+    # looks into cache and fetches images
     def __get_image_thread(self, url: str, callback, cache, userdata=None):
 
         # standardize all URLs
         if not url.startswith("https:"):
             url = "https:" + url
 
-        # look into cache
+        # look into ram cache
         cached = self.__image_dict.get(url, None)
         if cached:
+            timeval, pixbuf = cached
+
+            # give cached image to client
             _thread.start_new_thread(
                 callback, (cached, userdata)
             )
-            return
 
-        # no one is allowed to look inside fetching_dict
+            # if image is cached and not too old
+            time_diff = datetime.datetime.now() - mod_time
+            if time_diff.total_secounds() < self.__REFETCH_TIME:
+                return
+
+        # look in cache dir
+        else:
+            filename = url.split("/")[-1]
+            print("filename: ", filename)
+            filepath = os.path.join(self.__image_cache_dir_path, filename)
+            if GLib.file_test(filepath, GLib.FileTest.EXISTS):
+                pixbuf = Pixbuf.new_from_file(filepath)
+
+                mod_time = os.pstat(filepath).st_mtime
+                # store to ram cache
+                self.__image_dict[url] = (mod_time, pixbuf)
+
+                # give cached image to client
+                _thread.start_new_thread(
+                    callback, (pixbuf, userdata)
+                )
+
+                # if image is cached and not too old return
+                time_diff = datetime.datetime.now() - mod_time
+                if time_diff.total_seconds() < self.__REFETCH_TIME:
+                    return
+
+        # create a lock for this url
         self.__sem.acquire()
-
-        # look into cache again
-        cached = self.__image_dict.get(url, None)
-        if cached:
-            self.__sem.release()
-            callback(cached, userdata)
-            return
-
-        # see if someone else is working
-        do_the_work = len(self.__fetching_dict) == 0
-
-        work = (callback, userdata, cache)
-        url_list = self.__fetching_dict.get(url, list())
-        url_list.append(work)
-        self.__fetching_dict[url] = url_list
-
+        my_lock = self.__sems.get(url, _thread.allocate_lock())
         self.__sem.release()
 
-        # return if someone else needs to do the work
-        if not do_the_work:
-            return
+        my_lock.acquire()
 
-        # iterate through all urls
-        while len(self.__fetching_dict):
-            # get first key
-            url = next(iter(self.__fetching_dict))
+        # search again in ram cache
+        cached = self.__image_dict.get(url, None)
+        if cached:
+            timeval, pixbuf = cached
 
-            # request image
-            response = requests.get(url)
-            input_stream = Gio.MemoryInputStream.new_from_data(response.content, None)
-            pixbuf = Pixbuf.new_from_stream(input_stream, None)
-            input_stream.close()
+            # give cached image to client
+            _thread.start_new_thread(
+                callback, (cached, userdata)
+            )
 
-            self.__sem.acquire()
-            # pass image to every callback
-            for (callback, userdata, cache) in self.__fetching_dict.get(url):
-                if cache:
-                    self.__image_dict[url] = pixbuf
-                _thread.start_new_thread(
-                    callback,
-                    (pixbuf, userdata)
-                )
-            del self.__fetching_dict[url]
-            self.__sem.release()
+            time_diff = datetime.datetime.now() - mod_time
+            if time_diff.total_seconds() < self.__REFETCH_TIME:
+                my_lock.release()
+                return
+
+        # request and cache image to file image
+        self.__fetch_sem.acquire()
+        response = requests.get(url)
+        filename = url.split("/")[-1]
+        filepath = os.path.join(self.__image_cache_dir_path, filename)
+        with open(filepath, "wb") as f:
+            f.write(response.read())
+        response.close()
+        pixbuf = Pixbuf.new_from_file(filename)
+        input_stream.close()
+        self.__fetch_sem.release()
+
+        # return new image to caller
+        _thread.start_new_thread(
+            callback,
+            (pixbuf, userdata)
+        )
+
+        # cache image in ram
+        self.__image_dict[url] = (datetime.datetime.now(), pixbuf)
+
+        # release lock for this url
+        my_lock.release()
 
 
     def get_image(self, url: str, callback, size=PROFILE_PHOTO, cache=False):

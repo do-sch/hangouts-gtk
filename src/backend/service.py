@@ -253,6 +253,7 @@ class Service(object):
 
     def quit(self):
         self.__log.debug("disconnect")
+        # TODO: add callback, to be called, if __client does not exists
         self.__client.disconnect()
 
 

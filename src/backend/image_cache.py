@@ -124,7 +124,6 @@ class ImageCache:
             f.write(response.content)
         response.close()
         pixbuf = Pixbuf.new_from_file(filepath)
-        input_stream.close()
         self.__fetch_sem.release()
 
         # return new image to caller

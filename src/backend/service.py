@@ -152,6 +152,10 @@ class Service(object):
                         self.__incoming_event
                     )
 
+                    # enable logout
+                    app = Gio.Application.get_default()
+                    app.lookup_action("logout").set_enabled(True)
+
 
                 # work through queue
                 async def run_queue():

@@ -227,6 +227,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.message_view.foreach(
             lambda child, x: self.message_view.remove(child), None
         )
+        #TODO: sidebar
         self.conversation_list_viewport.remove(self.conversation_sidebar)
         self.__conversations = {}
         self.__client = None

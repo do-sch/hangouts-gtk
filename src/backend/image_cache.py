@@ -19,6 +19,7 @@ import _thread
 import threading
 import os
 import datetime
+import base64
 
 from gi.repository import Gio, GLib
 from gi.repository.GdkPixbuf import Pixbuf, InterpType
@@ -63,17 +64,17 @@ class ImageCache:
 
             # give cached image to client
             _thread.start_new_thread(
-                callback, (cached, userdata)
+                callback, (pixbuf, userdata)
             )
 
             # if image is cached and not too old
-            time_diff = datetime.datetime.now() - mod_time
-            if time_diff.total_secounds() < self.__REFETCH_TIME:
+            time_diff = datetime.datetime.now() - timeval
+            if time_diff.total_seconds() < self.__REFETCH_TIME:
                 return
 
         # look in cache dir
         else:
-            filename = url.split("/")[-1]
+            filename = str(base64.urlsafe_b64encode(url.encode("utf-8")))
             filepath = os.path.join(self.__image_cache_dir_path, filename)
             if GLib.file_test(filepath, GLib.FileTest.EXISTS):
                 pixbuf = Pixbuf.new_from_file(filepath)
@@ -107,7 +108,7 @@ class ImageCache:
 
             # give cached image to client
             _thread.start_new_thread(
-                callback, (cached, userdata)
+                callback, (pixbuf, userdata)
             )
 
             time_diff = datetime.datetime.now() - mod_time
@@ -118,7 +119,7 @@ class ImageCache:
         # request and cache image to file image
         self.__fetch_sem.acquire()
         response = requests.get(url)
-        filename = url.split("/")[-1]
+        filename = str(base64.urlsafe_b64encode(url.encode("utf-8")))
         filepath = os.path.join(self.__image_cache_dir_path, filename)
         with open(filepath, "wb") as f:
             f.write(response.content)

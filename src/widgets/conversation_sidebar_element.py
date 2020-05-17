@@ -35,7 +35,7 @@ class ConversationSidebarElement(Gtk.Box):
     badge: Gtk.Label = Gtk.Template.Child()
 
 
-    def __init__(self, main_window, conversation, image_cache, *args, **kwargs):
+    def __init__(self, conversation, image_cache, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.connect("destroy", self.destroy)

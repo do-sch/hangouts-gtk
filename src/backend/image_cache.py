@@ -151,6 +151,10 @@ class ImageCache:
             (url, got_image, cache, (callback, size))
         )
 
+    def destroy(self):
+        self.__image_dict.clear()
+
+
 def resize(pixbuf, size, callback):
 
     if size is None:

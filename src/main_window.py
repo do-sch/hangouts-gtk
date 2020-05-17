@@ -53,6 +53,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.__assemble_login()
         self.__assemble_sidebar()
         self.__assemble_header_bar_elements()
+        self.__handle_destroy()
 
         self.__add_actions()
 
@@ -190,6 +191,15 @@ class MainWindow(Gtk.ApplicationWindow):
         # connect handler to signal
         self.login_button.connect("clicked", login_button_clicked)
 
+
+    def __handle_destroy(self):
+        def dest(w):
+            self.__image_cache.destroy()
+            self.__image_cache = None
+            Gio.Application.get_default().remove_window(self)
+
+        self.connect("destroy", dest)
+
     def has_focus(self):
         return self.props.has_toplevel_focus
 
@@ -206,7 +216,7 @@ class MainWindow(Gtk.ApplicationWindow):
         for conversation in conversation_list.get_all():
             self.conversation_sidebar.prepend(
                 ConversationSidebarElement(
-                    self, conversation, self.__image_cache
+                    conversation, self.__image_cache
                 )
             )
 

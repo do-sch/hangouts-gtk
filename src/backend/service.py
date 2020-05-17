@@ -207,7 +207,7 @@ class Service(object):
 
 
     def __incoming_event(self, event):
-        self.__log.debug("incoming event: ", event)
+        self.__log.debug("incoming event: " + str(event))
         emmiter = self.__user_list.get_user(event.user_id)
         app = Gio.Application.get_default()
         win = app.props.active_window
